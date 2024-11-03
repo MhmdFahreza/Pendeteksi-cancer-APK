@@ -1,7 +1,5 @@
 package com.dicoding.asclepius.view
 
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
@@ -51,72 +49,16 @@ class ResultActivity : AppCompatActivity() {
     }
 
     private fun analyzeImage(imageUri: Uri) {
-        val inputBitmap = uriToBitmap(imageUri)
-
-        val sampleCancer1 = BitmapFactory.decodeResource(resources, R.drawable.sample_cancer_1)
-        val sampleCancer2 = BitmapFactory.decodeResource(resources, R.drawable.sample_cancer_2)
-        val sampleNonCancer1 = BitmapFactory.decodeResource(resources, R.drawable.sample_non_cancer_1)
-        val sampleNonCancer2 = BitmapFactory.decodeResource(resources, R.drawable.sample_non_cancer_2)
-
-        val cancerSimilarity = maxOf(
-            calculateSimilarityScore(inputBitmap, sampleCancer1),
-            calculateSimilarityScore(inputBitmap, sampleCancer2)
-        )
-
-        val nonCancerSimilarity = maxOf(
-            calculateSimilarityScore(inputBitmap, sampleNonCancer1),
-            calculateSimilarityScore(inputBitmap, sampleNonCancer2)
-        )
-
-        val (prediksi, confidence) = if (cancerSimilarity > nonCancerSimilarity) {
-            "Cancer" to cancerSimilarity
-        } else {
-            "Non-Cancer" to nonCancerSimilarity
+        try {
+            val result = imageClassifierHelper.classifyStaticImage(imageUri)
+            val resultParts = result.split("\n")
+            predictionResult = resultParts[0].replace("Prediksi: ", "")
+            confidenceScore = resultParts[1].replace("Confidence Score: ", "")
+            binding.resultText.text = result // Tampilkan hasil prediksi dan confidence score
+        } catch (e: Exception) {
+            e.printStackTrace()
+            binding.resultText.text = "Error during image analysis: ${e.message}"
         }
-
-        predictionResult = prediksi
-        confidenceScore = "${(confidence * 100).toInt()}%"
-        binding.resultText.text = "Prediksi: $predictionResult\nConfidence Score: $confidenceScore"
-    }
-
-    private fun calculateSimilarityScore(bitmap1: Bitmap, bitmap2: Bitmap): Float {
-        val resizedBitmap1 = Bitmap.createScaledBitmap(bitmap1, 224, 224, true)
-        val resizedBitmap2 = Bitmap.createScaledBitmap(bitmap2, 224, 224, true)
-
-        var dotProduct = 0.0
-        var magnitude1 = 0.0
-        var magnitude2 = 0.0
-
-        for (x in 0 until resizedBitmap1.width) {
-            for (y in 0 until resizedBitmap1.height) {
-                val pixel1 = resizedBitmap1.getPixel(x, y)
-                val pixel2 = resizedBitmap2.getPixel(x, y)
-
-                val red1 = (pixel1 shr 16) and 0xff
-                val green1 = (pixel1 shr 8) and 0xff
-                val blue1 = pixel1 and 0xff
-
-                val red2 = (pixel2 shr 16) and 0xff
-                val green2 = (pixel2 shr 8) and 0xff
-                val blue2 = pixel2 and 0xff
-
-                dotProduct += red1 * red2 + green1 * green2 + blue1 * blue2
-                magnitude1 += red1 * red1 + green1 * green1 + blue1 * blue1
-                magnitude2 += red2 * red2 + green2 * green2 + blue2 * blue2
-            }
-        }
-
-        return if (magnitude1 != 0.0 && magnitude2 != 0.0) {
-            (dotProduct / Math.sqrt(magnitude1 * magnitude2)).toFloat()
-        } else {
-            0.0f
-        }
-    }
-
-    private fun uriToBitmap(uri: Uri): Bitmap {
-        return contentResolver.openInputStream(uri)?.use { inputStream ->
-            BitmapFactory.decodeStream(inputStream) ?: throw IOException("Failed to decode bitmap from URI")
-        } ?: throw IOException("Failed to open input stream for URI")
     }
 
     private fun saveResultToDatabase() {

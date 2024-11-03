@@ -41,7 +41,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun clearCurrentImage() {
         currentImageUri = null
-        binding.previewImageView.setImageURI(null) // Clear the image from ImageView
+        binding.previewImageView.setImageURI(null)
     }
 
     private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
@@ -63,7 +63,7 @@ class MainActivity : AppCompatActivity() {
             currentImageUri?.let { startCrop(it) }
         } else {
             showToast("No image selected")
-            clearCurrentImage() // Clear currentImageUri if no image is selected
+            clearCurrentImage()
         }
     }
 
@@ -89,14 +89,14 @@ class MainActivity : AppCompatActivity() {
                     showImage()
                 } else {
                     showToast("Failed to retrieve cropped image")
-                    clearCurrentImage() // Reset URI if cropping fails
+                    clearCurrentImage()
                 }
             } else if (resultCode == Activity.RESULT_CANCELED) {
-                clearCurrentImage() // Clear image if crop was canceled
+                clearCurrentImage()
             } else if (resultCode == UCrop.RESULT_ERROR) {
                 val cropError = UCrop.getError(data!!)
                 showToast("Crop error: ${cropError?.message}")
-                clearCurrentImage() // Clear image if crop fails with error
+                clearCurrentImage()
             }
         }
     }
