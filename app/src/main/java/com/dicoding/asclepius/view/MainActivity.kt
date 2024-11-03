@@ -34,14 +34,14 @@ class MainActivity : AppCompatActivity() {
             ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
             requestPermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
         } else {
-            clearCurrentImage() // Hapus gambar sebelumnya sebelum membuka galeri
+            clearCurrentImage()
             openGallery()
         }
     }
 
     private fun clearCurrentImage() {
         currentImageUri = null
-        binding.previewImageView.setImageURI(null) // Hapus gambar dari ImageView
+        binding.previewImageView.setImageURI(null) // Clear the image from ImageView
     }
 
     private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
@@ -63,6 +63,7 @@ class MainActivity : AppCompatActivity() {
             currentImageUri?.let { startCrop(it) }
         } else {
             showToast("No image selected")
+            clearCurrentImage() // Clear currentImageUri if no image is selected
         }
     }
 
@@ -80,17 +81,23 @@ class MainActivity : AppCompatActivity() {
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == UCrop.REQUEST_CROP && resultCode == Activity.RESULT_OK) {
-            val resultUri = UCrop.getOutput(data!!)
-            if (resultUri != null) {
-                currentImageUri = resultUri
-                showImage()
-            } else {
-                showToast("Failed to retrieve cropped image")
+        if (requestCode == UCrop.REQUEST_CROP) {
+            if (resultCode == Activity.RESULT_OK && data != null) {
+                val resultUri = UCrop.getOutput(data)
+                if (resultUri != null) {
+                    currentImageUri = resultUri
+                    showImage()
+                } else {
+                    showToast("Failed to retrieve cropped image")
+                    clearCurrentImage() // Reset URI if cropping fails
+                }
+            } else if (resultCode == Activity.RESULT_CANCELED) {
+                clearCurrentImage() // Clear image if crop was canceled
+            } else if (resultCode == UCrop.RESULT_ERROR) {
+                val cropError = UCrop.getError(data!!)
+                showToast("Crop error: ${cropError?.message}")
+                clearCurrentImage() // Clear image if crop fails with error
             }
-        } else if (resultCode == UCrop.RESULT_ERROR) {
-            val cropError = UCrop.getError(data!!)
-            showToast("Crop error: ${cropError?.message}")
         }
     }
 
